@@ -34,7 +34,8 @@ def ping(host):
 def sync():
     while True:
         subprocess.call('rsync -vr --remove-source-files /home/pi/records/ pi@192.168.1.116:/home/pi/records', shell=True)
-        time.sleep(2)
+        subprocess.call('find . -type d -empty -delete', shell=True)
+        time.sleep(5)
         if not ping("192.168.1.116"):
             return
 
@@ -44,7 +45,7 @@ def gps(stamp):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
     i = 0
-    while i<300:
+    while i<4500:
         i += 1
         packet = gpsd.get_current()
         n = text_file.write(str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
@@ -69,7 +70,7 @@ while True:
     t = Thread(target=gps, args=(stamp, ))
     os.mkdir(stamp)
     t.start()
-    ffmpeg.input("/dev/video2", t=20, framerate=15, input_format="h264").output(stamp + '/video.mp4',t=20, framerate=15, bitrate=5000000, codec="copy").run()
+    ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/video.mp4',t=300, framerate=15, bitrate=5000000, codec="copy").run()
     t.join()
     if ping("192.168.1.116"):
         sync()
