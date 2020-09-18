@@ -35,7 +35,7 @@ def ping(host):
     # Building the command. Ex: "ping -c 1 google.com"
     #command = ['ping', param, '1', host]
 
-    response = os.system("fping -c1 -t500 " + host + " > /dev/null 2>&1")
+    response = os.system("ping -c1 -w1 " + host + " > /dev/null 2>&1")
 
     return response == 0
 
