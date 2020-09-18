@@ -30,12 +30,14 @@ def ping(host):
     """
 
     # Option for the number of packets as a function of
-    param = '-c'
+    #param = '-c'
 
     # Building the command. Ex: "ping -c 1 google.com"
-    command = ['ping', param, '1', host]
+    #command = ['ping', param, '1', host]
 
-    return subprocess.call(command) == 0
+    response = os.system("fping -c1 -t500 " + host + " > /dev/null 2>&1")
+
+    return response == 0
 
 
 def sync():
@@ -52,11 +54,12 @@ def gps(stamp):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
     i = 0
-    while i<4500:
+    while i<10:
         i += 1
         packet = gpsd.get_current()
         n = text_file.write(str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
-        time.sleep(0.06667)
+        print(str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
+        time.sleep(1)
     text_file.close()
    #subprocess.call('sudo ffmpeg -y -framerate 15 -i ' + start + ' -r 15 -b:v 5000000 -c:v copy -f mp4 ' + end, shell=True)
    #time.sleep(0.5)
@@ -77,7 +80,7 @@ while True:
     t = Thread(target=gps, args=(stamp, ))
     os.mkdir(stamp)
     t.start()
-    ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/video.mp4',t=300, framerate=15, bitrate=5000000, codec="copy").run()
+    ffmpeg.input("/dev/video2", t=10, r=15, input_format="h264").output(stamp + '/video.mp4',t=10, r=15, codec="copy", bitrate="5M").run()
     t.join()
     if ping(IP_SERVER):
         sync()
