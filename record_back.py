@@ -13,6 +13,7 @@ except:
     import http.client as httplib
 
 
+IP_SERVER = "10.9.133.201"
 
 # Connect to the local gpsd
 try:
@@ -38,11 +39,11 @@ def ping(host):
 
 
 def sync():
-    subprocess.call('rsync -vr --remove-source-files /home/pi/records/ pi@192.168.1.53:/home/pi/records', shell=True)
-    subprocess.call('find . -type d -empty -delete', shell=True)
     while True:
+        subprocess.call('/usr/bin/flock -n /tmp/cron.lock rsync -vr --remove-source-files /home/pi/records/ pi@' + IP_SERVER + ':/home/pi/records', shell=True)
+        subprocess.call('find . -type d -empty -delete', shell=True)
         time.sleep(20)
-        if not ping("192.168.1.53"):
+        if not ping(IP_SERVER):
             return
 
 
@@ -51,7 +52,7 @@ def gps(stamp):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
     i = 0
-    while i<1800:
+    while i<4500:
         i += 1
         packet = gpsd.get_current()
         n = text_file.write(str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
@@ -76,9 +77,9 @@ while True:
     t = Thread(target=gps, args=(stamp, ))
     os.mkdir(stamp)
     t.start()
-    ffmpeg.input("/dev/video2", t=120, framerate=15, input_format="h264").output(stamp + '/video.mp4',t=120, framerate=15, bitrate=5000000, codec="copy").run()
+    ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/video.mp4',t=300, framerate=15, bitrate=5000000, codec="copy").run()
     t.join()
-    if ping("192.168.1.53"):
+    if ping(IP_SERVER):
         sync()
 
     #camera.wait_recording(10)
