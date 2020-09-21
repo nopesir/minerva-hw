@@ -7,6 +7,7 @@ import gpsd
 import time
 import os
 import sys
+from datetime import datetime
 try:
     import httplib
 except:
@@ -76,11 +77,12 @@ def gps(stamp):
 #threads = []
 while True:
     #camera.split_recording('%d.h264' % ti)
-    stamp = str(int(time.time())+3)
+    stamp = datetime.today().strftime('%Y%m%d%H%M')
     t = Thread(target=gps, args=(stamp, ))
     os.mkdir(stamp)
+    t = Thread(target=gps, args=(stamp, ))
     t.start()
-    ffmpeg.input("/dev/video2", t=10, r=15, input_format="h264").output(stamp + '/video.mp4',t=10, r=15, codec="copy", bitrate="5M").run()
+    ffmpeg.input("/dev/video2", t=300, r=15, input_format="h264").output(stamp + '/video.mp4',t=300, r=15, codec="copy", bitrate="5M").run()
     t.join()
     if ping(IP_SERVER):
         sync()
