@@ -59,7 +59,7 @@ def gps(stamp):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
     i = 0
-    while i<10:
+    while i<300:
         i += 1
         packet = gpsd.get_current()
         n = text_file.write(str(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00"))))) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
