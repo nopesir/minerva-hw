@@ -14,7 +14,7 @@ except:
     import http.client as httplib
 
 
-IP_SERVER = "10.9.133.201"
+IP_SERVER = "192.168.1.53"
 
 # Connect to the local gpsd
 try:
@@ -23,7 +23,10 @@ except ConnectionRefusedError:
     print("GPS error, check its connection.")
     sys.exit(0)
 
-os.chdir("/home/pi/records")
+os.chdir("/home/pi/records") # Change directory to the records directory
+
+
+# Ping the host: returns True if it exists, False otherwise
 def ping(host):
     """
     Returns True if host (str) responds to a ping request.
@@ -41,6 +44,7 @@ def ping(host):
     return response == 0
 
 
+# Run rsync command and check each 20 seconds if the RPi3 is out of range
 def sync():
     while True:
         subprocess.call('/usr/bin/flock -n /tmp/cron.lock rsync -vr --remove-source-files /home/pi/records/ pi@' + IP_SERVER + ':/home/pi/records', shell=True)
@@ -50,7 +54,7 @@ def sync():
             return
 
 
-# Define a function for the thread
+# Retrieve gps data (thread)
 def gps(stamp):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
@@ -58,31 +62,32 @@ def gps(stamp):
     while i<10:
         i += 1
         packet = gpsd.get_current()
-        n = text_file.write(str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
-        print(str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
+        n = text_file.write(str(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00"))))) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
+        # print(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00")))))
+        # str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
         time.sleep(1)
     text_file.close()
    #subprocess.call('sudo ffmpeg -y -framerate 15 -i ' + start + ' -r 15 -b:v 5000000 -c:v copy -f mp4 ' + end, shell=True)
    #time.sleep(0.5)
    #subprocess.call(['rm', start])
 
-
+'''
 #camera = picamera.PiCamera(resolution=(1920, 1080), framerate=15)
-
 #first = int(time.time())
-
 #camera.start_recording(str(first)+'.h264', bitrate=5000000)
 #camera.wait_recording(10)
-
 #threads = []
+'''
+
+# MAIN LOOP
 while True:
     #camera.split_recording('%d.h264' % ti)
-    stamp = datetime.today().strftime('%Y%m%d%H%M')
+    stamp = str(int(datetime.today().strftime('%Y%m%d%H%M%S')) + 3)
     t = Thread(target=gps, args=(stamp, ))
     os.mkdir(stamp)
     t = Thread(target=gps, args=(stamp, ))
     t.start()
-    ffmpeg.input("/dev/video2", t=300, r=15, input_format="h264").output(stamp + '/video.mp4',t=300, r=15, codec="copy", bitrate="5M").run()
+    ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/video.mp4',t=300, r=15, codec="copy", bitrate="5M").run()
     t.join()
     if ping(IP_SERVER):
         sync()
