@@ -21,7 +21,7 @@ IP_SERVER = "192.168.1.53"
 time.sleep(10)
 
 # Check the camera
-if not os.path.exists('/dev/video2')):
+if not os.path.exists('/dev/video2'):
     print("Camera error, check its connection.")
     sys.exit(1)
 
