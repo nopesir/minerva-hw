@@ -1,4 +1,4 @@
-import picamera
+#import picamera
 import subprocess
 from threading import Thread
 from time import time
@@ -58,6 +58,7 @@ def sync():
         if not ping(IP_SERVER):
             return
 
+# -framerate 30 -i desktop -filter_complex settb=1/1000,setpts=RTCTIME/1000-1500000000000,mpdecimate,split[out][ts];[out]setpts=N/FRAME_RATE/TB[out] -map [out] -vcodec libx264 -pix_fmt yuv420p -preset fast -crf 0 -threads 0 nodups.mkv -map [ts] -f mkvtimestamp_v2 nodups.txt -vsync 0
 
 # Retrieve gps data (thread)
 def gps(stamp):
@@ -66,8 +67,10 @@ def gps(stamp):
     i = 0
     while i<300:
         i += 1
+        if i==1:
+            text_file.write(str(int(round(time.time() * 1000))) + '\n')
         packet = gpsd.get_current()
-        n = text_file.write(str(int(time.time())) + " " + str(packet.lat) + " " + str(packet.lon) + " " + str(packet.hspeed) + "\n")
+        n = text_file.write(str(int(time.time())) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
         # print(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00")))))
         # str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
         time.sleep(1)
@@ -108,3 +111,5 @@ while True:
 # join all threads
 #for t in threads:
 #    t.join()
+
+# ffmpeg -y -f v4l2 -video_size 1280x720 -framerate 15 -input_format h264 -i /dev/video2  -filter_complex "settb=1/1000,setpts=RTCTIME/1000-1500000000000,mpdecimate,split[out][ts];[out]setpts=N/FRAME_RATE/TB[out]" -map [out] -vcodec libx264  -preset faster -crf 5 -threads 4 nodups.mp4 -map [ts] -f mkvtimestamp_v2 nodups.txt -vsync 0 
