@@ -8,7 +8,6 @@ import time
 import os
 import sys
 from datetime import datetime
-from datetime import timedelta
 try:
     import httplib
 except:
@@ -17,26 +16,22 @@ except:
 
 IP_SERVER = "192.168.1.53"
 
-# Wait for the RPi to be ready and running
-time.sleep(10)
-
-# Check the camera
-if not os.path.exists('/dev/video2')):
-    print("Camera error, check its connection.")
-    sys.exit(1)
-
 # Connect to the local gpsd
 try:
     gpsd.connect()
 except ConnectionRefusedError:
     print("GPS error, check its connection.")
-    sys.exit(1)
+    sys.exit(0)
 
 os.chdir("/home/pi/records") # Change directory to the records directory
 
 
 # Ping the host: returns True if it exists, False otherwise
 def ping(host):
+    """
+    Returns True if host (str) responds to a ping request.
+    Remember that a host may not respond to a ping (ICMP) request even if the host name is valid.
+    """
 
     # Option for the number of packets as a function of
     #param = '-c'
@@ -52,7 +47,7 @@ def ping(host):
 # Run rsync command and check each 20 seconds if the RPi3 is out of range
 def sync():
     while True:
-        subprocess.call('/usr/bin/flock -n /tmp/cron.lock rsync -vr --remove-source-files -t /home/pi/records/ pi@' + IP_SERVER + ':/home/pi/records', shell=True)
+        subprocess.call('/usr/bin/flock -n /tmp/cron.lock rsync -vr --remove-source-files /home/pi/records/ pi@' + IP_SERVER + ':/home/pi/records', shell=True)
         subprocess.call('find . -type d -empty -delete', shell=True)
         time.sleep(20)
         if not ping(IP_SERVER):
@@ -67,7 +62,7 @@ def gps(stamp):
     while i<300:
         i += 1
         packet = gpsd.get_current()
-        n = text_file.write(str(int(time.time())) + " " + str(packet.lat) + " " + str(packet.lon) + " " + str(packet.hspeed) + "\n")
+        n = text_file.write(str(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00"))))) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
         # print(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00")))))
         # str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
         time.sleep(1)
@@ -87,15 +82,13 @@ def gps(stamp):
 # MAIN LOOP
 while True:
     #camera.split_recording('%d.h264' % ti)
-    tday = datetime.today() + timedelta(seconds=3)
-    stamp = str(int(tday.strftime('%Y%m%d%H%M%S')))
-    #t = Thread(target=gps, args=(stamp, ))
-    os.mkdir(stamp)
+    stamp = str(int(datetime.today().strftime('%Y%m%d%H%M%S')) + 3)
     t = Thread(target=gps, args=(stamp, ))
+    os.mkdir(stamp)
+    #t = Thread(target=gps, args=(stamp, ))
     t.start()
     #ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/`date +%s`.txt ' + stamp + '/video.mp4', t=300, f="mkvtimestamp_v2", r=15, codec="copy", bitrate="5M").run()
-    subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t 300 -i /dev/video2 -t 300 -c:v copy " + stamp + "/video.mp4", shell=True)
-    # For creating the timestamps.txt ->  -f mkvtimestamp_v2 " + stamp + "/" + str(int(time.time()*1000.0) + 3000) + ".txt"
+    subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t 300 -i /dev/video2 -t 300 -c:v copy " + stamp + "/video.mp4 -f mkvtimestamp_v2 " + stamp + "/" + str(int(time.time()+3)) + ".txt", shell=True)
     t.join()
     if ping(IP_SERVER):
         sync()
