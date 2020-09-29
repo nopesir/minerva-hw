@@ -5,6 +5,7 @@ from time import time
 import ffmpeg
 from gps import *
 import time
+import convert 
 import os
 import sys
 from datetime import datetime
@@ -76,8 +77,9 @@ def write_gps(stamp, gpsd):
     text_file2 = open(stamp + "/meta.json", "w")
     k = text_file2.write('{\n    "video_timestamp": ' + str(int(round(time.time() * 1000))) + '\n}')
     text_file2.close()
-    while i<300:
-        i += 1
+
+    t_end = time.time() + 60 * 5
+    while time.time() < t_end:
         
         #if i==1: # If it is the first line, write the initial frame timestamp
         while True:
@@ -96,11 +98,11 @@ def write_gps(stamp, gpsd):
         # print(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00")))))
         # str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
         
-        time.sleep(1)
+        time.sleep(0.5)
     
     text_file.close()
     os.chdir("/home/pi/records/"+stamp)
-    import convert # Convert to visualizer gps data 
+    convert.main() # Convert to visualizer gps data 
     os.chdir("/home/pi/records")
     #subprocess.call('sudo ffmpeg -y -framerate 15 -i ' + start + ' -r 15 -b:v 5000000 -c:v copy -f mp4 ' + end, shell=True)
     #time.sleep(0.5)
