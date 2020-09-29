@@ -3,7 +3,7 @@ import subprocess
 from threading import Thread
 from time import time
 import ffmpeg
-import gpsd
+from gps import *
 import time
 import os
 import sys
@@ -27,8 +27,8 @@ if not os.path.exists('/dev/video2'):
 
 # Connect to the local gpsd
 try:
-    gpsd.connect()
-except ConnectionRefusedError:
+    gpsd = gps(mode=WATCH_ENABLE|WATCH_NEWSTYLE)
+except:
     print("GPS error, check its connection.")
     sys.exit(1)
 
@@ -61,19 +61,32 @@ def sync():
 # -framerate 30 -i desktop -filter_complex settb=1/1000,setpts=RTCTIME/1000-1500000000000,mpdecimate,split[out][ts];[out]setpts=N/FRAME_RATE/TB[out] -map [out] -vcodec libx264 -pix_fmt yuv420p -preset fast -crf 0 -threads 0 nodups.mkv -map [ts] -f mkvtimestamp_v2 nodups.txt -vsync 0
 
 # Retrieve gps data (thread)
-def gps(stamp):
+def write_gps(stamp, gpsd):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
     i = 0
     while i<300:
         i += 1
-        if i==1:
+        
+        if i==1: # If it is the first line, write the initial frame timestamp
             text_file.write(str(int(round(time.time() * 1000))) + '\n')
-        packet = gpsd.get_current()
-        n = text_file.write(str(int(time.time())) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
+        
+        nx = gpsd.next()
+        
+        # For a list of all supported classes and fields refer to: https://gpsd.gitlab.io/gpsd/gpsd_json.html
+        if nx['class'] == 'TPV':
+            latitude = getattr(nx,'lat', "Unknown")
+            longitude = getattr(nx,'lon', "Unknown")
+            speed = getattr(nx,'speed', "Unknown")
+
+            if getattr(nx,'mode', "Unknown") > 1:
+                n = text_file.write(str(int(time.time())) + ' ' + str(latitude) + ' ' + str(longitude) + ' ' + str(speed) + '\n')
+        
         # print(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00")))))
         # str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
+        
         time.sleep(1)
+    
     text_file.close()
    #subprocess.call('sudo ffmpeg -y -framerate 15 -i ' + start + ' -r 15 -b:v 5000000 -c:v copy -f mp4 ' + end, shell=True)
    #time.sleep(0.5)
@@ -94,7 +107,7 @@ while True:
     stamp = str(int(tday.strftime('%Y%m%d%H%M%S')))
     #t = Thread(target=gps, args=(stamp, ))
     os.mkdir(stamp)
-    t = Thread(target=gps, args=(stamp, ))
+    t = Thread(target=write_gps, args=(stamp, gpsd, ))
     t.start()
     #ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/`date +%s`.txt ' + stamp + '/video.mp4', t=300, f="mkvtimestamp_v2", r=15, codec="copy", bitrate="5M").run()
     subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t 300 -i /dev/video2 -t 300 -c:v copy " + stamp + "/video.mp4", shell=True)
