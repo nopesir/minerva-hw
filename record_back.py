@@ -26,9 +26,15 @@ if not os.path.exists('/dev/video2'):
     sys.exit(1)
 
 # Connect to the local gpsd
-try:
-    gpsd = gps(mode=WATCH_ENABLE|WATCH_NEWSTYLE)
-except:
+for i in range(0, 10):
+    try:
+        gpsd = gps(mode=WATCH_ENABLE|WATCH_NEWSTYLE)
+        break
+    except:
+        print("GPS error, retrying in 5 seconds.")
+        time.sleep(5)
+
+if i > 10:
     print("GPS error, check its connection.")
     sys.exit(1)
 
@@ -65,7 +71,7 @@ def write_gps(stamp, gpsd):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
     i = 0
-    while i<300:
+    while i<30:
         i += 1
         
         if i==1: # If it is the first line, write the initial frame timestamp
@@ -88,9 +94,12 @@ def write_gps(stamp, gpsd):
         time.sleep(1)
     
     text_file.close()
-   #subprocess.call('sudo ffmpeg -y -framerate 15 -i ' + start + ' -r 15 -b:v 5000000 -c:v copy -f mp4 ' + end, shell=True)
-   #time.sleep(0.5)
-   #subprocess.call(['rm', start])
+    os.chdir("/home/pi/records/"+stamp)
+    import convert # Convert to visualizer gps data 
+    os.chdir("/home/pi/records")
+    #subprocess.call('sudo ffmpeg -y -framerate 15 -i ' + start + ' -r 15 -b:v 5000000 -c:v copy -f mp4 ' + end, shell=True)
+    #time.sleep(0.5)
+    #subprocess.call(['rm', start])
 
 '''
 #camera = picamera.PiCamera(resolution=(1920, 1080), framerate=15)
@@ -110,7 +119,7 @@ while True:
     t = Thread(target=write_gps, args=(stamp, gpsd, ))
     t.start()
     #ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/`date +%s`.txt ' + stamp + '/video.mp4', t=300, f="mkvtimestamp_v2", r=15, codec="copy", bitrate="5M").run()
-    subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t 300 -i /dev/video2 -t 300 -c:v copy " + stamp + "/video.mp4", shell=True)
+    subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t 30 -i /dev/video2 -t 30 -c:v copy " + stamp + "/video.mp4", shell=True)
     # For creating the timestamps.txt ->  -f mkvtimestamp_v2 " + stamp + "/" + str(int(time.time()*1000.0) + 3000) + ".txt"
     t.join()
     if ping(IP_SERVER):
