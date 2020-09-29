@@ -70,13 +70,14 @@ def sync():
 def write_gps(stamp, gpsd):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
+    text_file2 = open(stamp + "/meta.json", "w")
     i = 0
-    while i<30:
+    idk = str(int(round(time.time() * 1000)) + 3000)
+    k = text_file2.write('{\n    "video_timestamp": ' + idk + '\n}')
+    while i<300:
         i += 1
         
-        if i==1: # If it is the first line, write the initial frame timestamp
-            text_file.write(str(int(round(time.time() * 1000))) + '\n')
-        
+        #if i==1: # If it is the first line, write the initial frame timestamp
         nx = gpsd.next()
         
         # For a list of all supported classes and fields refer to: https://gpsd.gitlab.io/gpsd/gpsd_json.html
@@ -84,9 +85,10 @@ def write_gps(stamp, gpsd):
             latitude = getattr(nx,'lat', "Unknown")
             longitude = getattr(nx,'lon', "Unknown")
             speed = getattr(nx,'speed', "Unknown")
-
+            print(str(int(round(time.time() * 1000))))
             if getattr(nx,'mode', "Unknown") > 1:
-                n = text_file.write(str(int(time.time())) + ' ' + str(latitude) + ' ' + str(longitude) + ' ' + str(speed) + '\n')
+                idk = str(int(round(time.time() * 1000)))
+                n = text_file.write(idk + ' ' + str(latitude) + ' ' + str(longitude) + ' ' + str(speed) + '\n')
         
         # print(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00")))))
         # str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
@@ -94,6 +96,7 @@ def write_gps(stamp, gpsd):
         time.sleep(1)
     
     text_file.close()
+    text_file2.close()
     os.chdir("/home/pi/records/"+stamp)
     import convert # Convert to visualizer gps data 
     os.chdir("/home/pi/records")
@@ -108,6 +111,9 @@ def write_gps(stamp, gpsd):
 #camera.wait_recording(10)
 #threads = []
 '''
+# Try to sync first
+#if ping(IP_SERVER):
+#    sync()
 
 # MAIN LOOP
 while True:
@@ -119,7 +125,7 @@ while True:
     t = Thread(target=write_gps, args=(stamp, gpsd, ))
     t.start()
     #ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/`date +%s`.txt ' + stamp + '/video.mp4', t=300, f="mkvtimestamp_v2", r=15, codec="copy", bitrate="5M").run()
-    subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t 30 -i /dev/video2 -t 30 -c:v copy " + stamp + "/video.mp4", shell=True)
+    subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t 300 -i /dev/video2 -t 300 -c:v copy " + stamp + "/video.mp4", shell=True)
     # For creating the timestamps.txt ->  -f mkvtimestamp_v2 " + stamp + "/" + str(int(time.time()*1000.0) + 3000) + ".txt"
     t.join()
     if ping(IP_SERVER):
