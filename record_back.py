@@ -29,10 +29,6 @@ if not os.path.exists('/dev/video2'):
 for i in range(0, 10):
     try:
         gpsd = gps(mode=WATCH_ENABLE|WATCH_NEWSTYLE)
-        gpsd.next()
-        gpsd.next()
-        gpsd.next()
-        gpsd.next()
         break
     except:
         print("GPS error, retrying in 5 seconds.")
