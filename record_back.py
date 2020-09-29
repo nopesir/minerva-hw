@@ -17,6 +17,7 @@ except:
 
 
 IP_SERVER = "192.168.1.53"
+CHUNK_TIME = 300 # seconds
 
 # Wait for the RPi to be ready and running
 time.sleep(10)
@@ -78,7 +79,7 @@ def write_gps(stamp, gpsd):
     k = text_file2.write('{\n    "video_timestamp": ' + str(int(round(time.time() * 1000))) + '\n}')
     text_file2.close()
 
-    t_end = time.time() + 60 * 5
+    t_end = time.time() + CHUNK_TIME
     while time.time() < t_end:
         
         #if i==1: # If it is the first line, write the initial frame timestamp
@@ -129,7 +130,7 @@ while True:
     t = Thread(target=write_gps, args=(stamp, gpsd, ))
     t.start()
     #ffmpeg.input("/dev/video2", t=300, framerate=15, input_format="h264").output(stamp + '/`date +%s`.txt ' + stamp + '/video.mp4', t=300, f="mkvtimestamp_v2", r=15, codec="copy", bitrate="5M").run()
-    subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t 300 -i /dev/video2 -t 300 -c:v copy " + stamp + "/video.mp4", shell=True)
+    subprocess.call("ffmpeg -y -framerate 15 -input_format h264 -t " + str(CHUNK_TIME) + " -i /dev/video2 -t " + str(CHUNK_TIME) + " -c:v copy " + stamp + "/video.mp4", shell=True)
     # For creating the timestamps.txt ->  -f mkvtimestamp_v2 " + stamp + "/" + str(int(time.time()*1000.0) + 3000) + ".txt"
     t.join()
     if ping(IP_SERVER):
