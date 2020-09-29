@@ -29,6 +29,10 @@ if not os.path.exists('/dev/video2'):
 for i in range(0, 10):
     try:
         gpsd = gps(mode=WATCH_ENABLE|WATCH_NEWSTYLE)
+        gpsd.next()
+        gpsd.next()
+        gpsd.next()
+        gpsd.next()
         break
     except:
         print("GPS error, retrying in 5 seconds.")
@@ -70,25 +74,28 @@ def sync():
 def write_gps(stamp, gpsd):
     text_file = open(stamp + "/gps.txt", "w")
     time.sleep(3)
-    text_file2 = open(stamp + "/meta.json", "w")
     i = 0
-    idk = str(int(round(time.time() * 1000)) + 3000)
-    k = text_file2.write('{\n    "video_timestamp": ' + idk + '\n}')
+    #idk = str(int(round(time.time() * 1000)))
+    #k = text_file2.write('{\n    "video_timestamp": ' + idk + '\n}')
+    text_file2 = open(stamp + "/meta.json", "w")
+    k = text_file2.write('{\n    "video_timestamp": ' + str(int(round(time.time() * 1000))) + '\n}')
+    text_file2.close()
     while i<300:
         i += 1
         
         #if i==1: # If it is the first line, write the initial frame timestamp
-        nx = gpsd.next()
+        while True:
+            nx = gpsd.next()
+            if nx['class'] == 'TPV':
+                break
         
         # For a list of all supported classes and fields refer to: https://gpsd.gitlab.io/gpsd/gpsd_json.html
-        if nx['class'] == 'TPV':
-            latitude = getattr(nx,'lat', "Unknown")
-            longitude = getattr(nx,'lon', "Unknown")
-            speed = getattr(nx,'speed', "Unknown")
-            print(str(int(round(time.time() * 1000))))
-            if getattr(nx,'mode', "Unknown") > 1:
-                idk = str(int(round(time.time() * 1000)))
-                n = text_file.write(idk + ' ' + str(latitude) + ' ' + str(longitude) + ' ' + str(speed) + '\n')
+        
+        latitude = getattr(nx,'lat', "Unknown")
+        longitude = getattr(nx,'lon', "Unknown")
+        speed = getattr(nx,'speed', "Unknown")
+        if getattr(nx,'mode', "Unknown") > 1:
+            n = text_file.write(str(int(round(time.time() * 1000))) + ' ' + str(latitude) + ' ' + str(longitude) + ' ' + str(speed) + '\n')
         
         # print(int(datetime.timestamp(datetime.fromisoformat(str(packet.time).replace("Z", "+00:00")))))
         # str(i) + ' ' + str(packet.lat) + ' ' + str(packet.lon) + ' ' + str(packet.hspeed) + '\n')
@@ -96,7 +103,6 @@ def write_gps(stamp, gpsd):
         time.sleep(1)
     
     text_file.close()
-    text_file2.close()
     os.chdir("/home/pi/records/"+stamp)
     import convert # Convert to visualizer gps data 
     os.chdir("/home/pi/records")
