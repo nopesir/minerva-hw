@@ -118,8 +118,8 @@ def write_gps(stamp, gpsd):
 #threads = []
 '''
 # Try to sync first
-#if ping(IP_SERVER):
-#    sync()
+if ping(IP_SERVER):
+    sync()
 
 # MAIN LOOP
 while True:
