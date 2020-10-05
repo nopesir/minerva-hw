@@ -5,7 +5,7 @@ from time import time
 import ffmpeg
 from gps import *
 import time
-import convert 
+import convert
 import os
 import sys
 from datetime import datetime
@@ -20,7 +20,7 @@ IP_SERVER = "192.168.1.53"
 CHUNK_TIME = 300 # seconds
 
 # Wait for the RPi to be ready and running
-time.sleep(10)
+time.sleep(20)
 
 # Check the camera
 if not os.path.exists('/dev/video2'):
@@ -41,6 +41,9 @@ if i > 10:
     sys.exit(1)
 
 os.chdir("/home/pi/records") # Change directory to the records directory
+
+# Clear not valid folders
+subprocess.call("./../minerva-hw/clear.sh", shell=True)
 
 
 # Ping the host: returns True if it exists, False otherwise
